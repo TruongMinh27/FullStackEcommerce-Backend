@@ -12,6 +12,6 @@ export default registerAs(
     password: 'example',
     database: 'e-commerce',
     entities: [Users],
-    synchronize: true,
+    synchronize: false,
   }),
 );
