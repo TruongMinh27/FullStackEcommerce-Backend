@@ -6,6 +6,7 @@ import ormConfig from 'config/orm.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { GlobalExceptionFilter } from './global-exception-filter';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { GlobalExceptionFilter } from './global-exception-filter';
       useFactory: ormConfig,
     }),
     UsersModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,5 +1,10 @@
 import { registerAs } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import {
+  Feedbackers,
+  Products,
+  SkuDetails,
+} from 'src/products/entities/product.entity';
 import { Users } from 'src/users/Entities/user.entity';
 
 export default registerAs(
@@ -11,7 +16,7 @@ export default registerAs(
     username: 'root',
     password: 'example',
     database: 'e-commerce',
-    entities: [Users],
-    synchronize: false,
+    entities: [Users, Products, SkuDetails, Feedbackers],
+    synchronize: true,
   }),
 );
