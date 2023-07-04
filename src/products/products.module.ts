@@ -14,7 +14,6 @@ import { AuthMiddleware } from 'src/shared/middleware/auth';
 import { APP_GUARD } from '@nestjs/core';
 import RolesGuard from 'src/shared/middleware/roles.guard';
 import { ConfigModule } from '@nestjs/config';
-import { ReflectorProvider } from 'src/shared/utility/Refactor';
 
 @Module({
   imports: [

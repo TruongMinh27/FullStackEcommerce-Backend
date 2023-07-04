@@ -8,7 +8,8 @@ import { InjectStripe } from 'nestjs-stripe';
 import Stripe from 'stripe';
 import { ResponseModel } from 'src/Model/ResponseModel';
 import { GetProductQueryDto } from './dto/getproduct.dto';
-import { ProductsController } from './products.controller';
+import cloudinary from 'cloudinary';
+import { unlinkSync } from 'fs';
 
 @Injectable()
 export class ProductsService {
@@ -17,7 +18,13 @@ export class ProductsService {
     private readonly productDb: Repository<Products>,
     @InjectStripe()
     private readonly stripeClient: Stripe,
-  ) {}
+  ) {
+    cloudinary.v2.config({
+      cloud_name: process.env.cloud_name,
+      api_key: process.env.api_key,
+      api_secret: process.env.api_secret,
+    });
+  }
   async createProduct(createProductDto: CreateProductDto) {
     try {
       // tạo sản phẩm trong stripe
@@ -28,7 +35,10 @@ export class ProductsService {
         });
         createProductDto.stripeProductId = createdProductInStripe.id;
       }
-      const createdProductInDb = await this.productDb.save(createProductDto);
+      const createdProductInDb = await this.productDb.save({
+        ...createProductDto,
+        createAt: new Date(),
+      });
       return {
         message: 'Tạo sản phẩm thành công',
         results: createdProductInDb,
@@ -49,17 +59,17 @@ export class ProductsService {
       }
 
       const searchOptions: any = {
-        name: search,
+        productName: search,
         category,
         platformType,
         baseType,
       };
 
       if (callForHomePage) {
-        const products = await this.productDb.find();
+        const products = await this.findProductWithGroupBy();
         return {
           message:
-            products.length > 0
+            products.latestProducts || products.topRatedProducts
               ? 'Products fetched successfully'
               : 'No products found',
           result: products,
@@ -191,6 +201,71 @@ export class ProductsService {
       return {
         message: 'Xóa thành công',
         success: true,
+      };
+    } catch (error) {
+      throw error.message;
+    }
+  }
+
+  private async findProductWithGroupBy(): Promise<{
+    latestProducts: CreateProductDto[];
+    topRatedProducts: CreateProductDto[];
+  }> {
+    const latestProducts = await this.productDb
+      .createQueryBuilder('product')
+      .orderBy('product.createAt', 'DESC')
+      .take(4)
+      .getMany();
+
+    const topRatedProducts = await this.productDb
+      .createQueryBuilder('product')
+      .orderBy('product.avgRating', 'DESC')
+      .take(8)
+      .getMany();
+
+    return { latestProducts, topRatedProducts };
+  }
+
+  /**
+   * updateProductImage
+   */
+  async updateProductImage(id: string, file: any): Promise<any> {
+    try {
+      console.log(file);
+      const product = await this.productDb.findOne({ where: { id: id } });
+      if (!product) {
+        throw new Error(`Product ${id} not found`);
+      }
+      if (product.imageDetails?.public_id) {
+        await cloudinary.v2.uploader.destroy(product.imageDetails.public_id, {
+          invalidate: true,
+        });
+      }
+      const resOfCloudary = await cloudinary.v2.uploader.upload(file.path, {
+        folder: process.env.folderpath,
+        public_id: `${process.env.public_prefix}${Date.now()}`,
+        transformation: [
+          {
+            width: 400,
+            height: 400,
+            crop: 'fill',
+          },
+          { quality: 'auto' },
+        ],
+      });
+      unlinkSync(file.path);
+      await this.productDb.save({
+        ...product,
+        imageDetails: resOfCloudary,
+        image: resOfCloudary.secure_url,
+      });
+      await this.stripeClient.products.update(product.stripeProductId, {
+        images: [resOfCloudary.secure_url],
+      });
+      return {
+        message: 'Tải lên thành công',
+        success: true,
+        result: resOfCloudary.secure_url,
       };
     } catch (error) {
       throw error.message;

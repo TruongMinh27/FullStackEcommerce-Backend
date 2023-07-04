@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsDate,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -77,4 +78,7 @@ export class CreateProductDto {
 
   @IsOptional()
   stripeProductId?: string;
+  @IsOptional()
+  @IsDate()
+  createAt?: Date;
 }

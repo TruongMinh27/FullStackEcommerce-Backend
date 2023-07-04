@@ -116,4 +116,6 @@ export class Products {
 
   @Column({ nullable: true })
   stripeProductId: string;
+  @Column()
+  createAt: Date;
 }
