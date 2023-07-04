@@ -231,7 +231,6 @@ export class ProductsService {
    */
   async updateProductImage(id: string, file: any): Promise<any> {
     try {
-      console.log(file);
       const product = await this.productDb.findOne({ where: { id: id } });
       if (!product) {
         throw new Error(`Product ${id} not found`);
